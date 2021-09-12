@@ -32,8 +32,8 @@ const bodyTextSize = 10;
 const small = 0; medium = 1; large = 2;
 const numberOfLines = [5, 10, 20];
 
-const baseURL = 'https://www.rmv.de'
-const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId='
+const baseURL = 'https://www.rmv.de';
+const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId=';
 
 // Default station to look for.
 // The station's id should be passed as parameter in the widget. If it doesn't it will default to the value below
