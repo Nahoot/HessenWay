@@ -60,10 +60,6 @@ departures.forEach(function(obj){
   bus.imageSize = new Size(10, 10)
   bus.leftAlignImage()
   entryStack.addSpacer(10)
-//   let date = entryStack.addDate(formatTime(obj.time))
-//   date.applyTimeStyle()
-//   date.font = Font.systemFont(10)
-//   entryStack.addSpacer(10)
   
   let rtTime = obj.time
   if ("rtTime" in obj){
@@ -82,54 +78,16 @@ departures.forEach(function(obj){
   
   let direction = entryStack.addText(obj.direction.trim())
   direction.font = Font.thinMonospacedSystemFont(10)
-  entryStack.addSpacer()
-//   train.textColor = Color.white()
-//   train.font = Font.systemFont(10)
-  
-//   let time = formatTime(obj.time)
-//   let rttime = formatTime(obj.rtTime)
-//   train = w.addText(getTime(time) +" "+ getTime(rttime) +" "+ obj.name.trim() +" "+ obj.direction.trim())  
-  
+  entryStack.addSpacer()  
   
   if (!--resultNumber)
     throw BreakException;
-//   const r = new UITableRow()
-//   const name = UITableCell.text(obj.name, "subtitle")
-//   name.titleColor = Color.white()
-//   r.addCell(name)
-//   const direction = UITableCell.text(obj.direction, "subtitle")
-//   direction.titleColor = Color.white()
-//   r.addCell(direction)
-//   t.addRow(r)
-})
+  }
+  )
 } catch (e){
   if (e !== BreakException) throw e
 }
-// for(let depart in departures){
-//   console.log("Depart: "+depart)
-//   const stack =w.addStack()
-//   stack.centerAlignContent()
-//   const img= await loadImage("https://www.ecb.europa.eu/shared/img/flags/"+rate+".gif")
-//   const imgw =stack.addImage(img)
-//   imgw.imageSize=new Size(20, 20)
-//   stack.addSpacer(10)  
-//   const name = stack.addText(depart.name)
-//   name.textColor = Color.white()
-//   stack.addSpacer(10)
-//   const textw = stack.addText(depart.direction)
-//   textw.textColor = Color.white()
-//   stack.addSpacer(5)
-// }
 
-
-
-// const downloadAlert = new Alert()
-// downloadAlert.message = resp.Departure[0].name
-// downloadAlert.addAction('Yes')
-// downloadAlert.addCancelAction('No')
-// 
-// if (await downloadAlert.presentAlert() === 0) {
-//       }
 
 Script.setWidget(w)
 Script.complete()
