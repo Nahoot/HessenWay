@@ -1,4 +1,4 @@
-![GitHub all releases](https://img.shields.io/github/downloads/Nahoot/HessenWay/total?logo=GitHub)
+![GitHub all releases](https://img.shields.io/github/downloads/Nahoot/HessenWay/total?style=plastic&logo=GitHub)
 ![GitHub manifest version](https://img.shields.io/github/manifest-json/v/Nahoot/HessenWay?style=plastic)
 ![GitHub top language](https://img.shields.io/github/languages/top/Nahoot/HessenWay?style=plastic)
 ![GitHub](https://img.shields.io/github/license/Nahoot/HessenWay?style=plastic)
