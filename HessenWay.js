@@ -16,12 +16,12 @@
 // Access key to get information from RMV.
 // In case you don't have one request one here: https://opendata.rmv.de/site/anmeldeseite.html
 // It might take a few hours for you to receive your key in the email. 
-const accesskey = "a48ad8fd-4b85-4b3d-917c-e759d6b46a5f";
+// const accesskey = "a48ad8fd-4b85-4b3d-917c-e759d6b46a5f";
 
 // BELOW THIS POINT THE SCRIPT SHOULD NOT BE CHANGED
 // ---------------------------------------------------------
 
-// Init variables
+// Init constants
 
 // Layout configuration
 const widgetBackgroundColor = "#222222";
@@ -35,6 +35,8 @@ const numberOfLines = [5, 10, 20];
 const baseURL = 'https://www.rmv.de';
 const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId=';
 
+const rmvAccessKey = 'hessenway.rmv.api.key';
+
 // Default station to look for.
 // The station's id should be passed as parameter in the widget. If it doesn't it will default to the value below
 let extId = args.widgetParameter
@@ -47,10 +49,23 @@ if(extId == null)
 // ---------------------------------------------------------
 // Base functions
 
+function getRMVDepartures(){
+  const result = {};
+
+  const resp = await get({  
+    url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + extId
+  })
+  console.log("Request id: "+resp.requestId)
+  result.origin = departures[0].stop;
+  result.departures = resp.Departure;
+
+  return result;
+}
+
 function getTransportationsSortedByTime(departures){
   let transports = [];
   departures.forEach(function(obj){
-    console.log(obj.name)
+    //console.log(obj.name)
     const transport = {};
 
     // Get tranport type (bus, train, subway, etc..)
@@ -165,38 +180,125 @@ async function get(opts) {
       return result
 }
 
+async function promptForKey(){
+  let alert = new Alert();
+  alert.title = "API key";
+  alert.message = "Paste below the API key you have received from RMV.";
+  alert.addTextField("d9z9zz50-dd9d-459d-b0f8-d514e455d386");
+  alert.addAction("OK");
+  alert.addCancelAction("Cancel");
+  alert.addDestructiveAction("Delete key!")
+  let idx = await alert.present();
+  console.log("Index: " + idx)
+  if(idx == 0){
+    console.log("Add key");
+    Keychain.set(rmvAccessKey, alert.textFieldValue(0));
+  }
+  if(idx == 1){
+    console.log("Remove key");
+    Keychain.remove(rmvAccessKey);
+  }
+}
+
+async function showWidgetPreview(){
+  let alert = new Alert();
+  alert.title = "Widget size";
+  //alert.addTextField("3000010", "3000010");
+  alert.addAction("Small");
+  alert.addAction("Medium");
+  alert.addAction("Large");
+  alert.addCancelAction("Back");
+  let idx = await alert.present();
+  switch(idx){
+    case 0:
+      widget.presentSmall();
+      break;
+    case 1:
+      let result = getRMVDepartures();
+      let transports = getTransportationsSortedByTime(result.departures);
+      printWidgetHeader(widget, result.origin);
+      printWidgetBody(widget, transports);
+      widget.presentMedium();
+      break;
+    case 2:
+      widget.presentLarge();
+      break;
+    default:
+      break;
+  }
+}
 // Script flow
 
 // Setup parameters
-// 2DO: if the parameter or the key is missing put the information in the widget and leave
 
 // 2DO: If running in widget get widget size
 // if not get it from configuration 
 // Use this for the visualization and presentation at the end
 // config.widgetFamily == "small" || "medium" || "large" || "null"
 
-// Make call to RMV
-const resp = await get({  
-  url: baseURL + departuresURL + accesskey + '&extId=' + extId
-})
-console.log("Request id: "+resp.requestId)
-const departures = resp.Departure;
-
-// Get origin
-const origin = departures[0].stop;
-// Get Departures
-// Turn result into a sorted array of local objects
-let transports = getTransportationsSortedByTime(departures);
-console.log(transports);
-
-// Generate Widget visualization
 const widget = new ListWidget();
-printWidgetHeader(widget, origin);
-printWidgetBody(widget, transports);
-
-// Cleanup
 Script.setWidget(widget)
+
+if(config.runsInApp){
+  let idx = 0;
+  do{
+    let alert = new Alert();
+    alert.title = "Widget options";
+    alert.addAction("Enter API key");
+    alert.addAction("Show widget preview");
+    //alert.addAction("Update widget");
+    alert.addCancelAction("Exit menu");
+    idx = await alert.present();
+    console.log("Selected option: " + idx);
+    switch(idx){
+      case 0:
+        await promptForKey();
+        break;
+      case 1:
+        await showWidgetPreview();
+        break;
+      case 2:
+        // 2DO: Update widget automatically
+        break;
+      default:
+        break;
+    }
+  }while(idx != -1);
+}
+else{
+  // 2DO: checks if key is in keychain
+  // 2DO: makes HTTP request
+  // 2DO: Builds widget
+
+  if(!Keychain.contains(rmvAccessKey)){
+    // Generate Widget visualization    
+    widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
+    widget.backgroundColor = new Color(widgetBackgroundColor) 
+    
+    let titleText = widget.addText("The key was not found. Please follow the instructions to obtain a key from RMV and add it in the configuration.")
+    titleText.centerAlignText()
+    titleText.font = Font.boldSystemFont(titleTextSize)
+    titleText.textColor = Color.red()    
+  }else{
+    // Make call to RMV
+    const resp = await get({  
+      url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + extId
+    })
+    console.log("Request id: "+resp.requestId)
+    const departures = resp.Departure;
+
+    // Get origin
+    const origin = departures[0].stop;
+    // Get Departures
+    // Turn result into a sorted array of local objects
+    let transports = getTransportationsSortedByTime(departures);
+    //console.log(transports);
+
+    // Generate Widget visualization
+    //const widget = new ListWidget();
+    printWidgetHeader(widget, origin);
+    printWidgetBody(widget, transports);
+  }
+}
+
 Script.complete()
-// w.presentSmall()
-widget.presentMedium()
-// w.presentLarge()
