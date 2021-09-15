@@ -30,7 +30,7 @@ const titleTextSize = 14;
 const bodyTextSize = 10;
 
 const small = 0; medium = 1; large = 2;
-const numberOfLines = [5, 10, 20];
+const numberOfLines = [5, 10, 24];
 
 const baseURL = 'https://www.rmv.de';
 const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId=';
@@ -49,14 +49,14 @@ if(extId == null)
 // ---------------------------------------------------------
 // Base functions
 
-function getRMVDepartures(){
+async function getRMVDepartures(departureStationCode){
   const result = {};
 
   const resp = await get({  
-    url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + extId
+    url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + departureStationCode
   })
   console.log("Request id: "+resp.requestId)
-  result.origin = departures[0].stop;
+  result.origin = resp.Departure[0].stop;
   result.departures = resp.Departure;
 
   return result;
@@ -143,7 +143,7 @@ function printWidgetBody(widget, departures, widgetSize = medium){
       date.font = Font.thinMonospacedSystemFont(bodyTextSize)
       entryStack.addSpacer(10)
     
-      let train = obj.name;
+      let train = entryStack.addText(obj.name);
       train.font = Font.thinMonospacedSystemFont(bodyTextSize)
       entryStack.addSpacer(10)
         
@@ -158,6 +158,28 @@ function printWidgetBody(widget, departures, widgetSize = medium){
   } catch (e){
     if (e !== BreakException) throw e
   }
+}
+
+async function buildWidget(widget, departureStationCode, widgetSize){
+  console.log("Enters buildWidget")
+  if(!Keychain.contains(rmvAccessKey)){
+    // Generate Widget visualization    
+    widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
+    widget.backgroundColor = new Color(widgetBackgroundColor) 
+    
+    let titleText = widget.addText("The key was not found. Please follow the instructions to obtain a key from RMV and add it in the configuration.")
+    titleText.centerAlignText()
+    titleText.font = Font.boldSystemFont(titleTextSize)
+    titleText.textColor = Color.red()    
+  }else{
+    // 2DO: Check if departureStationCode is not empty
+    // Make call to RMV
+    let result = await getRMVDepartures(departureStationCode);
+    let transports = getTransportationsSortedByTime(result.departures);
+    printWidgetHeader(widget, result.origin);
+    printWidgetBody(widget, transports, widgetSize);
+  }
+  console.log("Leaves buildWidget");
 }
 // ---------------------------------------------------------
 
@@ -200,32 +222,38 @@ async function promptForKey(){
   }
 }
 
-async function showWidgetPreview(){
-  let alert = new Alert();
-  alert.title = "Widget size";
-  //alert.addTextField("3000010", "3000010");
-  alert.addAction("Small");
-  alert.addAction("Medium");
-  alert.addAction("Large");
-  alert.addCancelAction("Back");
-  let idx = await alert.present();
-  switch(idx){
-    case 0:
-      widget.presentSmall();
-      break;
-    case 1:
-      let result = getRMVDepartures();
-      let transports = getTransportationsSortedByTime(result.departures);
-      printWidgetHeader(widget, result.origin);
-      printWidgetBody(widget, transports);
-      widget.presentMedium();
-      break;
-    case 2:
-      widget.presentLarge();
-      break;
-    default:
-      break;
-  }
+async function showWidgetPreview(widget){
+  console.log("Enter showWidgetPreview")
+  let idx = 0;
+  do{
+    console.log("Run loop");
+    let alert = new Alert();
+    alert.title = "Widget size";
+    //alert.addTextField("3000010", "3000010");
+    alert.addAction("Small");
+    alert.addAction("Medium");
+    alert.addAction("Large");
+    alert.addCancelAction("Back");
+    idx = await alert.present();
+    switch(idx){
+      case 0:
+        widget.presentSmall();
+        break;
+      case 1:
+        widget = new ListWidget();
+        await buildWidget(widget, extId, medium);
+        await widget.presentMedium();
+        break;
+      case 2:
+        widget = new ListWidget();
+        await buildWidget(widget, extId, large);
+        await widget.presentLarge();
+        break;
+      default:
+        break;
+    }
+  }while(idx != -1);
+  console.log("Leaves showWidgetPreview");
 }
 // Script flow
 
@@ -237,11 +265,12 @@ async function showWidgetPreview(){
 // config.widgetFamily == "small" || "medium" || "large" || "null"
 
 const widget = new ListWidget();
-Script.setWidget(widget)
+Script.setWidget(widget);
 
 if(config.runsInApp){
   let idx = 0;
   do{
+    console.log("Run loop");
     let alert = new Alert();
     alert.title = "Widget options";
     alert.addAction("Enter API key");
@@ -255,7 +284,8 @@ if(config.runsInApp){
         await promptForKey();
         break;
       case 1:
-        await showWidgetPreview();
+        //idx = -1;
+        await showWidgetPreview(widget);
         break;
       case 2:
         // 2DO: Update widget automatically
@@ -264,41 +294,14 @@ if(config.runsInApp){
         break;
     }
   }while(idx != -1);
+  console.log("Left loop");
 }
 else{
   // 2DO: checks if key is in keychain
   // 2DO: makes HTTP request
   // 2DO: Builds widget
 
-  if(!Keychain.contains(rmvAccessKey)){
-    // Generate Widget visualization    
-    widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
-    widget.backgroundColor = new Color(widgetBackgroundColor) 
-    
-    let titleText = widget.addText("The key was not found. Please follow the instructions to obtain a key from RMV and add it in the configuration.")
-    titleText.centerAlignText()
-    titleText.font = Font.boldSystemFont(titleTextSize)
-    titleText.textColor = Color.red()    
-  }else{
-    // Make call to RMV
-    const resp = await get({  
-      url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + extId
-    })
-    console.log("Request id: "+resp.requestId)
-    const departures = resp.Departure;
-
-    // Get origin
-    const origin = departures[0].stop;
-    // Get Departures
-    // Turn result into a sorted array of local objects
-    let transports = getTransportationsSortedByTime(departures);
-    //console.log(transports);
-
-    // Generate Widget visualization
-    //const widget = new ListWidget();
-    printWidgetHeader(widget, origin);
-    printWidgetBody(widget, transports);
-  }
+  buildWidget(widget, args.widgetParameter, config.widgetFamily);
 }
 
-Script.complete()
+Script.complete();
