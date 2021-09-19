@@ -29,8 +29,11 @@ const widgetPadding = 10;
 const titleTextSize = 14;
 const bodyTextSize = 10;
 
-const small = 0; medium = 1; large = 2;
-const numberOfLines = [5, 10, 24];
+const numberOfLines = { "small": 5, "medium": 10, "large": 24 };
+
+// ---------------------------------------------------------
+
+const small = "small"; medium = "medium"; large = "large";
 
 const baseURL = 'https://www.rmv.de';
 const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId=';
@@ -40,11 +43,8 @@ const rmvAccessKey = 'hessenway.rmv.api.key';
 // Default station to look for.
 // The station's id should be passed as parameter in the widget. If it doesn't it will default to the value below
 let extId = args.widgetParameter
-// console.log("ExtId:" + extId)
 if(extId == null)
   extId = "3000010" // Hauptbahnhof
-//  extId = "3002930" // flughafen
-//  extId = "3001830" // Niederrad
 
 // ---------------------------------------------------------
 // Base functions
@@ -55,7 +55,6 @@ async function getRMVDepartures(departureStationCode){
   const resp = await get({  
     url: baseURL + departuresURL + Keychain.get(rmvAccessKey) + '&extId=' + departureStationCode
   })
-  console.log("Request id: "+resp.requestId)
   result.origin = resp.Departure[0].stop;
   result.departures = resp.Departure;
 
@@ -98,9 +97,6 @@ function getTransportationsSortedByTime(departures){
 }
 
 function printWidgetHeader(widget, origin){
-  widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
-  widget.backgroundColor = new Color(widgetBackgroundColor) 
-  
   let titleStack = widget.addStack()
   titleStack.centerAlignContent()
   titleStack.addSpacer()
@@ -118,7 +114,6 @@ function printWidgetBody(widget, departures, widgetSize = medium){
   let resultNumber = numberOfLines[widgetSize];
   try {
     departures.forEach(function(obj){
-      console.log(obj.name)      
       let entryStack = widget.addStack()
       entryStack.layoutHorizontally()
     
@@ -161,25 +156,28 @@ function printWidgetBody(widget, departures, widgetSize = medium){
 }
 
 async function buildWidget(widget, departureStationCode, widgetSize){
-  console.log("Enters buildWidget")
+  widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
+  widget.backgroundColor = new Color(widgetBackgroundColor) 
+    
   if(!Keychain.contains(rmvAccessKey)){
     // Generate Widget visualization    
-    widget.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
-    widget.backgroundColor = new Color(widgetBackgroundColor) 
-    
     let titleText = widget.addText("The key was not found. Please follow the instructions to obtain a key from RMV and add it in the configuration.")
     titleText.centerAlignText()
     titleText.font = Font.boldSystemFont(titleTextSize)
     titleText.textColor = Color.red()    
-  }else{
-    // 2DO: Check if departureStationCode is not empty
-    // Make call to RMV
+  }else if(!departureStationCode){
+    // Generate Widget visualization    
+    let titleText = widget.addText("No parameter was given. Follow the instructions to configure a departure station.");
+    titleText.centerAlignText()
+    titleText.font = Font.boldSystemFont(titleTextSize)
+    titleText.textColor = Color.red()
+  }
+  else {
     let result = await getRMVDepartures(departureStationCode);
     let transports = getTransportationsSortedByTime(result.departures);
     printWidgetHeader(widget, result.origin);
     printWidgetBody(widget, transports, widgetSize);
   }
-  console.log("Leaves buildWidget");
 }
 // ---------------------------------------------------------
 
@@ -211,25 +209,19 @@ async function promptForKey(){
   alert.addCancelAction("Cancel");
   alert.addDestructiveAction("Delete key!")
   let idx = await alert.present();
-  console.log("Index: " + idx)
   if(idx == 0){
-    console.log("Add key");
     Keychain.set(rmvAccessKey, alert.textFieldValue(0));
   }
   if(idx == 1){
-    console.log("Remove key");
     Keychain.remove(rmvAccessKey);
   }
 }
 
-async function showWidgetPreview(widget){
-  console.log("Enter showWidgetPreview")
+async function showWidgetPreview(){
   let idx = 0;
   do{
-    console.log("Run loop");
     let alert = new Alert();
     alert.title = "Widget size";
-    //alert.addTextField("3000010", "3000010");
     alert.addAction("Small");
     alert.addAction("Medium");
     alert.addAction("Large");
@@ -237,7 +229,9 @@ async function showWidgetPreview(widget){
     idx = await alert.present();
     switch(idx){
       case 0:
-        widget.presentSmall();
+        widget = new ListWidget();
+        await buildWidget(widget, extId, small);
+        await widget.presentSmall();
         break;
       case 1:
         widget = new ListWidget();
@@ -253,39 +247,26 @@ async function showWidgetPreview(widget){
         break;
     }
   }while(idx != -1);
-  console.log("Leaves showWidgetPreview");
 }
-// Script flow
 
-// Setup parameters
-
-// 2DO: If running in widget get widget size
-// if not get it from configuration 
-// Use this for the visualization and presentation at the end
-// config.widgetFamily == "small" || "medium" || "large" || "null"
-
-const widget = new ListWidget();
-Script.setWidget(widget);
+// ---------------------------------------------------------
 
 if(config.runsInApp){
   let idx = 0;
   do{
-    console.log("Run loop");
     let alert = new Alert();
     alert.title = "Widget options";
     alert.addAction("Enter API key");
-    alert.addAction("Show widget preview");
+    alert.addAction("Show widget");
     //alert.addAction("Update widget");
     alert.addCancelAction("Exit menu");
     idx = await alert.present();
-    console.log("Selected option: " + idx);
     switch(idx){
       case 0:
         await promptForKey();
         break;
       case 1:
-        //idx = -1;
-        await showWidgetPreview(widget);
+        await showWidgetPreview();
         break;
       case 2:
         // 2DO: Update widget automatically
@@ -294,14 +275,12 @@ if(config.runsInApp){
         break;
     }
   }while(idx != -1);
-  console.log("Left loop");
 }
 else{
-  // 2DO: checks if key is in keychain
-  // 2DO: makes HTTP request
-  // 2DO: Builds widget
-
-  buildWidget(widget, args.widgetParameter, config.widgetFamily);
+  const widget = new ListWidget();
+  await buildWidget(widget, args.widgetParameter, config.widgetFamily);  
+  Script.setWidget(widget);
 }
 
 Script.complete();
+
