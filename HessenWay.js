@@ -96,7 +96,12 @@ function getTransportationsSortedByTime(departures){
   })
 }
 
-function printWidgetHeader(widget, origin){
+function printWidgetHeader(widget, origin, widgetSize = medium){
+  if(widgetSize == small){
+    if(origin.startsWith("Frankfurt (Main) ")){
+      origin = origin.replace("Frankfurt (Main) ", '');
+    }
+  }
   let titleStack = widget.addStack()
   titleStack.centerAlignContent()
   titleStack.addSpacer()
@@ -142,10 +147,14 @@ function printWidgetBody(widget, departures, widgetSize = medium){
       train.font = Font.thinMonospacedSystemFont(bodyTextSize)
       entryStack.addSpacer(10)
         
+      if(widgetSize == small){
+        entryStack = widget.addStack();
+        entryStack.addSpacer(20);
+      }
       let direction = entryStack.addText(obj.destination)
       direction.font = Font.thinMonospacedSystemFont(bodyTextSize)
-      entryStack.addSpacer()  
-    
+      entryStack.addSpacer()
+      
       if (!--resultNumber)
         throw BreakException;
     }
@@ -175,7 +184,7 @@ async function buildWidget(widget, departureStationCode, widgetSize){
   else {
     let result = await getRMVDepartures(departureStationCode);
     let transports = getTransportationsSortedByTime(result.departures);
-    printWidgetHeader(widget, result.origin);
+    printWidgetHeader(widget, result.origin, widgetSize);
     printWidgetBody(widget, transports, widgetSize);
   }
 }
