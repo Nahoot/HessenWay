@@ -17,7 +17,7 @@
 // and replacing <API_KEY> by your key and <LOCATION> by the name of the station you are looking for.
 // In the response look for the extId field.
 // 
-// More detailed instructions cna be found here: https://github.com/Nahoot/HessenWay
+// More detailed instructions can be found here: https://github.com/Nahoot/HessenWay
 //
 // ANY CHANGE BELOW THIS POINT IS AT YOUR OWN RISK
 // ---------------------------------------------------------
