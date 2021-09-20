@@ -7,18 +7,19 @@
 // Version 1.1.0
 
 // Instructions
-// When adding a widget to the screen add the station you are looking for as a parameter.
-// In order to know the id of the station you are looking for follow the instructions here: https://github.com/Nahoot/HessenWay
-
-// ---------------------------------------------------------
-// THIS IS THE PART THAT SHOULD BE EDITED
-
-// Access key to get information from RMV.
+//
+// When running the widget for the first time you need to setup an access key from RMV.
 // In case you don't have one request one here: https://opendata.rmv.de/site/anmeldeseite.html
 // It might take a few hours for you to receive your key in the email. 
-// const accesskey = "a48ad8fd-4b85-4b3d-917c-e759d6b46a5f";
-
-// BELOW THIS POINT THE SCRIPT SHOULD NOT BE CHANGED
+//
+// When adding a widget to the screen add the station you are looking for as a parameter.
+// You can get the station id by using https://www.rmv.de/hapi/location.name?format=json&accessId=<API_KEY>&input=<LOCATION>
+// and replacing <API_KEY> by your key and <LOCATION> by the name of the station you are looking for.
+// In the response look for the extId field.
+// 
+// More detailed instructions cna be found here: https://github.com/Nahoot/HessenWay
+//
+// ANY CHANGE BELOW THIS POINT IS AT YOUR OWN RISK
 // ---------------------------------------------------------
 
 // Init constants
@@ -41,7 +42,9 @@ const departuresURL = '/hapi/departureBoard?lang=en&format=json&accessId=';
 const rmvAccessKey = 'hessenway.rmv.api.key';
 
 // Default station to look for.
-// The station's id should be passed as parameter in the widget. If it doesn't it will default to the value below
+// The station's id to be used when the script is run in the app.
+// if it's executed from the widget it should be passed as parameter. 
+// If it doesn't it will default to the value below
 let extId = args.widgetParameter
 if(extId == null)
   extId = "3000010" // Hauptbahnhof
@@ -83,16 +86,13 @@ function getTransportationsSortedByTime(departures){
     // 2DO: Remove the spaces from here and move them to "printing" code
     transport.name = obj.name.trim().padEnd(6, String.fromCodePoint(0x2007)).padEnd(7, ' ')
    
-    // Gets the transport final destination
+    // Gets the transport's final destination
     transport.destination = obj.direction.trim();
     
     transports.push(transport);
   })
   return transports.sort(function (a, b){
-    if((a.time.getTime() === b.time.getTime()) || (a.time.getTime() < b.time.getTime())){
-      return a;
-    }
-    return b;
+    return a.time.getTime() - b.time.getTime();
   })
 }
 
@@ -131,8 +131,9 @@ function printWidgetBody(widget, departures, widgetSize = medium){
       if (cat == "RE")
         img = SFSymbol.named("tram.fill")
       img.applyThinWeight()
+      // Make this work
+      // const bus = entryStack.addImage(images[obj.category].applyThinWeight());
       const bus = entryStack.addImage(img.image)
-      
       bus.tintColor = Color.white()
       bus.imageSize = new Size(bodyTextSize, bodyTextSize)
       bus.leftAlignImage()
@@ -147,6 +148,7 @@ function printWidgetBody(widget, departures, widgetSize = medium){
       train.font = Font.thinMonospacedSystemFont(bodyTextSize)
       entryStack.addSpacer(10)
         
+      // If the widget is small we change lines
       if(widgetSize == small){
         entryStack = widget.addStack();
         entryStack.addSpacer(20);
