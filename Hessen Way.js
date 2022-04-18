@@ -71,7 +71,7 @@ function getTransportationsSortedByTime(departures){
     const transport = {};
 
     // Get tranport type (bus, train, subway, etc..)
-    transport.category = obj.Product.catOut.trim();
+    transport.category = obj.Product[0].catOut.trim();
     // 2DO: Replace the text with the image directly
    
     // Get transport time. Always gets scheduled time. If the transport is delayed and there is "real time" use it instead
